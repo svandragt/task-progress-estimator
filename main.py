@@ -92,7 +92,7 @@ def main():
     ensure_session_state()
     state = st.session_state.app_state
 
-    st.header("Task Progress Estimator !")
+    st.header("Task Progress Estimator")
 
     with st.sidebar:
         st.header("Settings")
@@ -107,7 +107,7 @@ def main():
         def create_task_from_input():
             new_title = st.session_state.get("new_task_title", "")
             if new_title.strip():
-                t = new_task(new_title)
+                t = new_task(new_title.strip())
                 state["tasks"][t["id"]] = t
                 save_state(state)
                 st.session_state.new_task_title = ""
