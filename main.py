@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 from typing import Dict, Any, List
 from uuid import uuid4
 
@@ -105,12 +104,22 @@ def main():
         st.subheader("Add Task")
 
         def create_task_from_input():
-            new_title = st.session_state.get("new_task_title", "")
-            if new_title.strip():
-                t = new_task(new_title.strip())
-                state["tasks"][t["id"]] = t
-                save_state(state)
-                st.session_state.new_task_title = ""
+            new_title_title = st.session_state.get("new_task_title", "")
+            if new_title_title.strip() == "":
+                return
+            # Check if task with this title already exists
+            normalized_title = new_title_title.strip()
+            existing_titles = [task["title"] for task in state["tasks"].values()]
+
+            if normalized_title in existing_titles:
+                st.toast(f"Task '{normalized_title}' already exists!", icon="⚠️")
+                return
+
+            t = new_task(normalized_title)
+            state["tasks"][t["id"]] = t
+            save_state(state)
+            st.session_state.new_task_title = ""
+            st.toast(f"Task '{normalized_title}' created!", icon="✅")
 
         new_title = st.text_input("Task title", key="new_task_title", on_change=create_task_from_input)
         if st.button("Create task", type="primary"):
@@ -137,26 +146,39 @@ def main():
     tabs = st.tabs([state["tasks"][tid]["title"] for tid in task_ids_sorted])
 
     changed = False
+    need_rerun = False
 
     for tid, tab in zip(task_ids_sorted, tabs):
         task = state["tasks"][tid]
         with tab:
-            # Top row: title, delete
-            col_title, col_delete = st.columns([5,1])
-            with col_title:
-                new_task_title = st.text_input(
-                    "Title",
-                    value=task["title"],
-                    key=f"title_{tid}"
-                )
-                if new_task_title != task["title"]:
-                    task["title"] = new_task_title
-                    changed = True
-            with col_delete:
-                if st.button("Delete task", key=f"del_{tid}"):
-                    del state["tasks"][tid]
-                    save_state(state)
-                    st.rerun()
+            with st.container():
+                # Top row: title, delete
+                col_title, col_delete = st.columns([5,1])
+                with col_title:
+                    new_task_title = st.text_input(
+                        "Title",
+                        value=task["title"],
+                        key=f"title_{tid}"
+                    )
+                    if new_task_title != task["title"]:
+                        # Check if another task already has this title
+                        normalized_title = new_task_title.strip()
+                        existing_titles = [
+                            t["title"] for t_id, t in state["tasks"].items()
+                            if t_id != tid  # Exclude current task from check
+                        ]
+
+                        if normalized_title in existing_titles:
+                            st.warning(f"⚠️ Another task named '{normalized_title}' already exists. Choose a different name.")
+                            # Don't apply the change
+                        else:
+                            task["title"] = new_task_title
+                            changed = True
+                with col_delete:
+                    if st.button("Delete task", key=f"del_{tid}"):
+                        del state["tasks"][tid]
+                        save_state(state)
+                        need_rerun = True
 
             # Capacity & logging
             col_plan, col_logged, col_add = st.columns([1.1, 1.1, 1.3])
@@ -254,6 +276,10 @@ def main():
     if changed:
         save_state(state)
         st.toast("Changes saved.", icon="💾")
+
+    if need_rerun:
+        st.rerun()
+
 
 if __name__ == "__main__":
     main()
