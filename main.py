@@ -97,7 +97,7 @@ def main():
         st.header("Settings")
         state["global_velocity"] = st.number_input(
             "Global velocity (SP/day)",
-            min_value=0.1, step=0.1, value=float(state.get("global_velocity", 3.0)),
+            min_value=0.1, step=0.1, value=float(state.get("global_velocity", DEFAULT_STATE['global_velocity'])),
             key="global_velocity_input"
         )
 
