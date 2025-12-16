@@ -101,9 +101,11 @@ def main():
             key="global_velocity_input"
         )
 
-        # Update state immediately if velocity changed
+        # Update state immediately if velocity changed -- doesn't seem to work
         if current_velocity != state.get("global_velocity"):
             state["global_velocity"] = current_velocity
+            save_state(state)
+            st.rerun()
 
 
         st.markdown("---")
