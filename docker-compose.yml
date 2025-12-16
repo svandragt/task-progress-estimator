@@ -1,0 +1,8 @@
+services:
+  app:
+    build:
+      context: .
+    env_file: .env
+    ports:
+      - "${PORT:-8501}:${PORT:-8501}"
+    restart: unless-stopped
