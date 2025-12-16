@@ -9,7 +9,7 @@ import streamlit as st
 DATA_FILE = Path(__file__).parent / "task_progress_state.json"
 
 DEFAULT_STATE: Dict[str, Any] = {
-    "global_velocity": 3.0,   # story points / day
+    "global_velocity": 1.8,   # story points / day
     "tasks": {}               # id -> task
 }
 
@@ -71,7 +71,7 @@ def main():
     ensure_session_state()
     state = st.session_state.app_state
 
-    st.title("Task Progress Estimator")
+    st.header("Task Progress Estimator")
 
     with st.sidebar:
         st.header("Settings")
@@ -82,7 +82,16 @@ def main():
 
         st.markdown("---")
         st.subheader("Add Task")
-        new_title = st.text_input("Task title", key="new_task_title")
+
+        def create_task_from_input():
+            new_title = st.session_state.get("new_task_title", "")
+            if new_title.strip():
+                t = new_task(new_title)
+                state["tasks"][t["id"]] = t
+                save_state(state)
+                st.session_state.new_task_title = ""
+
+        new_title = st.text_input("Task title", key="new_task_title", on_change=create_task_from_input)
         if st.button("Create task", type="primary"):
             if new_title.strip():
                 t = new_task(new_title)
@@ -196,7 +205,7 @@ def main():
             total_sp, done_sp, incomplete_sp = compute_points(task["criteria"])
             velocity = task.get("velocity_override") or state["global_velocity"]
             required_days = (incomplete_sp / velocity) if velocity > 0 else float("inf")
-            planned_days = (task.get("planned_points", 3.0) * velocity) if velocity > 0 else 0.0
+            planned_days = (task.get("planned_points", 3.0) / velocity) if velocity > 0 else 0.0
             time_left = max(0.0, planned_days - task["days_worked"])
 
             m1, m2, m3, m4 = st.columns(4)
