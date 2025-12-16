@@ -95,11 +95,16 @@ def main():
 
     with st.sidebar:
         st.header("Settings")
-        state["global_velocity"] = st.number_input(
+        current_velocity = st.number_input(
             "Global velocity (SP/day)",
             min_value=0.1, step=0.1, value=float(state.get("global_velocity", DEFAULT_STATE['global_velocity'])),
             key="global_velocity_input"
         )
+
+        # Update state immediately if velocity changed
+        if current_velocity != state.get("global_velocity"):
+            state["global_velocity"] = current_velocity
+
 
         st.markdown("---")
         st.subheader("Add Task")
