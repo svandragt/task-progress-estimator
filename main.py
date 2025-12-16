@@ -35,7 +35,8 @@ def new_task(title: str) -> Dict[str, Any]:
         "planned_points": 3.0,  # story points planned for this task
         "days_worked": 0.0,            # cumulative log
         "velocity_override": None,     # optional per-task velocity
-        "criteria": []                 # list of dicts: {text, points, done}
+        "criteria": [],  # list of dicts: {text, points, done}
+        "deleted": False  # soft delete flag
     }
 
 def criteria_to_df(criteria: List[Dict[str, Any]]) -> pd.DataFrame:
@@ -109,7 +110,7 @@ def main():
         st.caption("Data will also auto-save on changes.")
 
     task_ids_sorted = sorted(
-        state["tasks"].keys(),
+        [tid for tid in state["tasks"].keys() if not state["tasks"][tid].get("deleted", False)],
         key=lambda tid: state["tasks"][tid]["title"].lower()
     )
 
@@ -138,7 +139,8 @@ def main():
                     changed = True
             with col_delete:
                 if st.button("Delete task", key=f"del_{tid}"):
-                    del state["tasks"][tid]
+                    state["tasks"][tid]["deleted"] = True
+                    save_state(state)
                     st.rerun()
 
             # Capacity & logging
