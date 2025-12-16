@@ -83,7 +83,7 @@ def main():
     ensure_session_state()
     state = st.session_state.app_state
 
-    st.header("Task Progress Estimator")
+    st.header("Task Progress Estimator !")
 
     with st.sidebar:
         st.header("Settings")
