@@ -5,24 +5,32 @@ from uuid import uuid4
 
 import pandas as pd
 import streamlit as st
-
-DATA_FILE = Path(__file__).parent / "task_progress_state.json"
+from streamlit_local_storage import LocalStorage
 
 DEFAULT_STATE: Dict[str, Any] = {
     "global_velocity": 1.8,   # story points / day
     "tasks": {}               # id -> task
 }
 
+STORAGE_KEY = "task_progress_state"
+def get_local_storage():
+    """Initialize LocalStorage instance."""
+    return LocalStorage()
 def load_state() -> Dict[str, Any]:
-    if DATA_FILE.exists():
+    """Load state from browser local storage."""
+    localS = get_local_storage()
+    stored_data = localS.getItem(STORAGE_KEY)
+    if stored_data:
         try:
-            return json.loads(DATA_FILE.read_text())
+            return json.loads(stored_data)
         except Exception:
             pass
     return DEFAULT_STATE.copy()
 
 def save_state(state: Dict[str, Any]) -> None:
-    DATA_FILE.write_text(json.dumps(state, indent=2))
+    """Save state to browser local storage."""
+    localS = get_local_storage()
+    localS.setItem(STORAGE_KEY, json.dumps(state))
 
 def ensure_session_state():
     if "app_state" not in st.session_state:
@@ -105,9 +113,9 @@ def main():
         st.markdown("---")
         if st.button("Save now"):
             save_state(state)
-            st.toast("Saved.", icon="💾")
+            st.toast("Saved to browser storage.", icon="💾")
 
-        st.caption("Data will also auto-save on changes.")
+        st.caption("💡 Data is stored in your browser's local storage")
 
     task_ids_sorted = sorted(
         [tid for tid in state["tasks"].keys() if not state["tasks"][tid].get("deleted", False)],
@@ -190,7 +198,7 @@ def main():
             edited = st.data_editor(
                 df,
                 key=f"editor_{tid}",
-                use_container_width=True,
+                width='stretch',
                 num_rows="dynamic",
                 column_config={
                     "Criteria": st.column_config.TextColumn("Criteria", width="medium", required=False),
