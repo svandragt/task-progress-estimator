@@ -22,8 +22,8 @@ def get_local_storage(key_suffix="default"):
 def load_state() -> Dict[str, Any]:
     """Load state from browser local storage."""
     try:
-        localS = get_local_storage(key_suffix="load")
-        stored_data = localS.getItem(STORAGE_KEY)
+        ls = get_local_storage(key_suffix="load")
+        stored_data = ls.getItem(STORAGE_KEY)
         if stored_data:
             try:
                 return json.loads(stored_data)
@@ -36,10 +36,10 @@ def load_state() -> Dict[str, Any]:
 def save_state(state: Dict[str, Any]) -> None:
     """Save state to browser local storage."""
     try:
-        localS = get_local_storage(key_suffix="save")
-        if localS and hasattr(localS, 'storedItems') and localS.storedItems is not None:
-            localS.setItem(STORAGE_KEY, json.dumps(state))
-    except Exception as e:
+        ls = get_local_storage(key_suffix="save")
+        if ls and hasattr(ls, 'storedItems') and ls.storedItems is not None:
+            ls.setItem(STORAGE_KEY, json.dumps(state))
+    except Exception:
         # Silently fail - storage may not be available in some environments
         pass
 
@@ -103,30 +103,26 @@ def main():
         st.markdown("---")
         st.subheader("Add Task")
 
-        def create_task_from_input():
-            new_title_title = st.session_state.get("new_task_title", "")
-            if new_title_title.strip() == "":
-                return
-            # Check if task with this title already exists
-            normalized_title = new_title_title.strip()
-            existing_titles = [task["title"] for task in state["tasks"].values()]
+        new_title = st.text_input("Task title", key="new_task_title")
 
-            if normalized_title in existing_titles:
-                st.toast(f"Task '{normalized_title}' already exists!", icon="⚠️")
-                return
-
-            t = new_task(normalized_title)
-            state["tasks"][t["id"]] = t
-            save_state(state)
-            st.session_state.new_task_title = ""
-            st.toast(f"Task '{normalized_title}' created!", icon="✅")
-
-        new_title = st.text_input("Task title", key="new_task_title", on_change=create_task_from_input)
         if st.button("Create task", type="primary"):
             if not new_title.strip():
                 st.toast("Please enter a title.", icon="⚠️")
+            else:
+                # Check if task with this title already exists
+                normalized_title = new_title.strip()
+                existing_titles = [task["title"] for task in state["tasks"].values()]
 
-        st.markdown("---")
+                if normalized_title in existing_titles:
+                    st.toast(f"Task '{normalized_title}' already exists!", icon="⚠️")
+                else:
+                    t = new_task(normalized_title)
+                    state["tasks"][t["id"]] = t
+                    save_state(state)
+                    st.toast(f"Task '{normalized_title}' created!", icon="✅")
+                    # Clear the input by deleting the key and rerunning
+                    del st.session_state.new_task_title
+                    st.rerun()
         if st.button("Save now"):
             save_state(state)
             st.toast("Saved to browser storage.", icon="💾")
