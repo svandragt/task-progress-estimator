@@ -128,9 +128,10 @@ def main():
                     state["tasks"][t["id"]] = t
                     save_state(state)
                     st.toast(f"Task '{normalized_title}' created!", icon="✅")
-                    # Clear the input by deleting the key and rerunning
-                    del st.session_state.new_task_title
-                    st.rerun()
+                    # Clear the input - DON'T rerun immediately
+                    if "new_task_title" in st.session_state:
+                        st.session_state.new_task_title = ""
+
         if st.button("Save now"):
             save_state(state)
             st.toast("Saved to browser storage.", icon="💾")
