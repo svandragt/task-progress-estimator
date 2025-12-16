@@ -13,12 +13,16 @@ DEFAULT_STATE: Dict[str, Any] = {
 }
 
 STORAGE_KEY = "task_progress_state"
-def get_local_storage():
-    """Initialize LocalStorage instance."""
-    return LocalStorage()
+
+
+def get_local_storage(key_suffix="default"):
+    """Initialize LocalStorage instance with unique key."""
+    return LocalStorage(key=f"local_storage_{key_suffix}")
+
+
 def load_state() -> Dict[str, Any]:
     """Load state from browser local storage."""
-    localS = get_local_storage()
+    localS = get_local_storage(key_suffix="load")
     stored_data = localS.getItem(STORAGE_KEY)
     if stored_data:
         try:
@@ -29,7 +33,7 @@ def load_state() -> Dict[str, Any]:
 
 def save_state(state: Dict[str, Any]) -> None:
     """Save state to browser local storage."""
-    localS = get_local_storage()
+    localS = get_local_storage(key_suffix="save")
     localS.setItem(STORAGE_KEY, json.dumps(state))
 
 def ensure_session_state():
