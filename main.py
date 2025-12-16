@@ -44,7 +44,6 @@ def new_task(title: str) -> Dict[str, Any]:
         "days_worked": 0.0,            # cumulative log
         "velocity_override": None,     # optional per-task velocity
         "criteria": [],  # list of dicts: {text, points, done}
-        "deleted": False  # soft delete flag
     }
 
 def criteria_to_df(criteria: List[Dict[str, Any]]) -> pd.DataFrame:
@@ -102,12 +101,7 @@ def main():
 
         new_title = st.text_input("Task title", key="new_task_title", on_change=create_task_from_input)
         if st.button("Create task", type="primary"):
-            if new_title.strip():
-                t = new_task(new_title)
-                state["tasks"][t["id"]] = t
-                save_state(state)
-                st.rerun()
-            else:
+            if not new_title.strip():
                 st.toast("Please enter a title.", icon="⚠️")
 
         st.markdown("---")
@@ -118,7 +112,7 @@ def main():
         st.caption("💡 Data is stored in your browser's local storage")
 
     task_ids_sorted = sorted(
-        [tid for tid in state["tasks"].keys() if not state["tasks"][tid].get("deleted", False)],
+        state["tasks"].keys(),
         key=lambda tid: state["tasks"][tid]["title"].lower()
     )
 
@@ -147,7 +141,7 @@ def main():
                     changed = True
             with col_delete:
                 if st.button("Delete task", key=f"del_{tid}"):
-                    state["tasks"][tid]["deleted"] = True
+                    del state["tasks"][tid]
                     save_state(state)
                     st.rerun()
 
