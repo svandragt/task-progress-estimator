@@ -289,13 +289,13 @@ def main():
             planned_days = (
                 (task.get("planned_points", 3.0) / velocity) if velocity > 0 else 0.0
             )
-            time_left = max(0.0, planned_days - task["days_worked"])
+            remaining_time = max(0.0, planned_days - task["days_worked"])
 
             m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Total SP", f"{total_sp:.2f}")
-            m2.metric("Completed SP", f"{done_sp:.2f}")
-            m3.metric("Incomplete SP", f"{incomplete_sp:.2f}")
-            m4.metric("Required days (at velocity)", f"{required_days:.2f}")
+            m1.metric("Planned days", f"{planned_days:.2f}")
+            m2.metric("Remaining time", f"{remaining_time:.2f}")
+            m3.metric("Required days", f"{required_days:.2f}")
+            m4.metric("Days worked", f"{task['days_worked']:.2f}")
 
             # Guidance and warning
             if velocity <= 0:
@@ -303,17 +303,17 @@ def main():
                     "Velocity is 0. Set a positive velocity to estimate remaining days."
                 )
             else:
-                if time_left < required_days:
+                if remaining_time < required_days:
                     st.error(
-                        f"Risk: remaining time ({time_left:.2f} days) < required ({required_days:.2f} days)."
+                        f"Risk: remaining time ({remaining_time:.2f} days) < required ({required_days:.2f} days)."
                     )
                 else:
                     st.success(
-                        f"On track: remaining time ({time_left:.2f} days) ≥ required ({required_days:.2f} days)."
+                        f"On track: remaining time ({remaining_time:.2f} days) ≥ required ({required_days:.2f} days)."
                     )
 
             st.caption(
-                "Planned days = planned story points × velocity. "
+                "Planned days = planned story points ÷ velocity (SP/day). "
                 "Remaining time = planned days – days worked. "
                 "Required days = incomplete story points ÷ velocity (SP/day)."
             )
