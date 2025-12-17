@@ -178,9 +178,6 @@ def main():
                     t = new_task(normalized_title)
                     state["tasks"][t["id"]] = t
                     save_state(state)
-                    st.session_state._toast_after_rerun = (
-                        f"Task '{normalized_title}' created!"
-                    )
                     st.rerun()
 
         st.caption("💡 Data is stored in your browser's local storage")
@@ -246,7 +243,6 @@ def main():
                     )
                     changed = True
                     save_state(state)
-                    st.session_state._toast_after_rerun = f"Added {add_days} day(s)."
                     st.rerun()
 
             with col_add:
