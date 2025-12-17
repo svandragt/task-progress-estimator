@@ -40,6 +40,7 @@ def save_state(state: Dict[str, Any]) -> None:
         if ls and hasattr(ls, 'storedItems') and ls.storedItems is not None:
             ls.setItem(STORAGE_KEY, json.dumps(state))
     except Exception:
+        print("Error saving state to browser storage.")
         # Silently fail - storage may not be available in some environments
         pass
 
@@ -47,6 +48,11 @@ def save_state(state: Dict[str, Any]) -> None:
 def ensure_session_state():
     if "app_state" not in st.session_state:
         st.session_state.app_state = load_state()
+    if "velocity_last_changed" not in st.session_state:
+        st.session_state.velocity_last_changed = None
+    if "velocity_pending_save" not in st.session_state:
+        st.session_state.velocity_pending_save = False
+
 
 def new_task(title: str) -> Dict[str, Any]:
     return {
@@ -101,23 +107,24 @@ def main():
             key="global_velocity_input"
         )
 
-        # Update state immediately if velocity changed -- doesn't seem to work
+        # Update state and mark for debounced save if velocity changed
         if current_velocity != state.get("global_velocity"):
+            import time
             state["global_velocity"] = current_velocity
-            save_state(state)
-            st.rerun()
-
+            st.session_state.velocity_last_changed = time.time()
+            st.session_state.velocity_pending_save = True
 
         st.markdown("---")
         st.subheader("Add Task")
 
-        new_title = st.text_input("Task title", key="new_task_title")
+        with st.form("create_task_form", clear_on_submit=True):
+            new_title = st.text_input("Task title", key="new_task_title")
+            submitted = st.form_submit_button("Create task", type="primary")
 
-        if st.button("Create task", type="primary"):
+        if submitted:
             if not new_title.strip():
                 st.toast("Please enter a title.", icon="⚠️")
             else:
-                # Check if task with this title already exists
                 normalized_title = new_title.strip()
                 existing_titles = [task["title"] for task in state["tasks"].values()]
 
@@ -128,15 +135,10 @@ def main():
                     state["tasks"][t["id"]] = t
                     save_state(state)
                     st.toast(f"Task '{normalized_title}' created!", icon="✅")
-                    # Clear the input - DON'T rerun immediately
-                    if "new_task_title" in st.session_state:
-                        st.session_state.new_task_title = ""
-
-        if st.button("Save now"):
-            save_state(state)
-            st.toast("Saved to browser storage.", icon="💾")
+                    st.rerun()
 
         st.caption("💡 Data is stored in your browser's local storage")
+
 
     task_ids_sorted = sorted(
         state["tasks"].keys(),
@@ -281,6 +283,20 @@ def main():
     if changed:
         save_state(state)
         st.toast("Changes saved.", icon="💾")
+
+    # Handle debounced velocity save
+    if st.session_state.velocity_pending_save:
+        import time
+        if st.session_state.velocity_last_changed is not None:
+            elapsed = time.time() - st.session_state.velocity_last_changed
+            if elapsed >= 1.0:  # 1 second debounce
+                save_state(state)
+                st.session_state.velocity_pending_save = False
+                st.session_state.velocity_last_changed = None
+            else:
+                # Trigger rerun to check again
+                time.sleep(0.1)
+                st.rerun()
 
     if need_rerun:
         st.rerun()
