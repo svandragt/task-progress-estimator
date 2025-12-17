@@ -38,22 +38,11 @@ def load_state() -> Dict[str, Any]:
 
 def save_state(state: Dict[str, Any]) -> None:
     """Save state to browser local storage."""
-    # mark "saving" in the UI
-    st.session_state.save_indicator_until = time.time() + 2.0
-    st.session_state.save_indicator_text = "Saving…"
-
     try:
         ls = get_local_storage()
         ls.setItem(STORAGE_KEY, json.dumps(state))
-
-        # mark "saved" in the UI
-        st.session_state.save_indicator_until = time.time() + 2.0
-        st.session_state.save_indicator_text = "Saved ✅"
         st.session_state._last_saved_at = time.time()
     except Exception:
-        # mark "failed" in the UI
-        st.session_state.save_indicator_until = time.time() + 3.0
-        st.session_state.save_indicator_text = "Save failed (local storage unavailable)"
         # Silently fail - storage may not be available in some environments
         pass
 
@@ -68,10 +57,6 @@ def ensure_session_state():
         st.session_state.velocity_last_changed = None
     if "velocity_pending_save" not in st.session_state:
         st.session_state.velocity_pending_save = False
-    if "save_indicator_until" not in st.session_state:
-        st.session_state.save_indicator_until = 0.0
-    if "save_indicator_text" not in st.session_state:
-        st.session_state.save_indicator_text = ""
     if "_toast_after_rerun" not in st.session_state:
         st.session_state._toast_after_rerun = None
     if "need_rerun" not in st.session_state:
@@ -199,12 +184,6 @@ def main():
                     st.rerun()
 
         st.caption("💡 Data is stored in your browser's local storage")
-
-        # Temporary save indicator
-        if time.time() < float(st.session_state.save_indicator_until or 0.0):
-            st.caption(st.session_state.save_indicator_text)
-        else:
-            st.caption("")
 
     task_ids_sorted = sorted(
         state["tasks"].keys(), key=lambda tid: state["tasks"][tid]["title"].lower()
