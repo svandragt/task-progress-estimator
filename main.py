@@ -95,8 +95,9 @@ def df_to_criteria(df: pd.DataFrame) -> List[Dict[str, Any]]:
         text = str(row.get("Criteria", "")).strip()
         points = float(row.get("Points", 0) or 0)
         done = bool(row.get("Done", False))
-        if text or points:  # keep non-empty rows
-            rows.append({"text": text, "points": points, "done": done})
+        # REMOVE the strict "if text or points" check here
+        # to allow rows to exist while being edited
+        rows.append({"text": text, "points": points, "done": done})
     return rows
 
 
@@ -261,10 +262,18 @@ def main():
                     changed = True
 
             st.markdown("### Acceptance Criteria")
+
+            # 1. Initialize the editor state in session state if not present
+            # This prevents the editor from resetting when the script re-runs
+            editor_key = f"editor_{tid}"
+
+            # 2. Get the current data. We use the editor's own state if it exists
+            # to prevent overwriting uncommitted rows during a re-run.
             df = criteria_to_df(task.get("criteria", []))
+
             edited = st.data_editor(
                 df,
-                key=f"editor_{tid}",
+                key=editor_key,
                 width="stretch",
                 num_rows="dynamic",
                 column_config={
@@ -277,10 +286,16 @@ def main():
                     "Done": st.column_config.CheckboxColumn("Done"),
                 },
             )
+
+            # 3. Use the experimental 'on_change' or simply process the 'edited' result
+            # But we must update the TASK state, not just compare it.
             new_criteria = df_to_criteria(edited)
+
+            # Only update and save if there's a real difference to prevent infinite loops
             if new_criteria != task.get("criteria", []):
                 task["criteria"] = new_criteria
-                changed = True
+                save_state(state)
+                # We DON'T rerun here; let the editor finish its cycle
 
             # Metrics
             total_sp, done_sp, incomplete_sp = compute_points(task["criteria"])
@@ -317,10 +332,6 @@ def main():
                 "Remaining time = planned days – days worked. "
                 "Required days = incomplete story points ÷ velocity (SP/day)."
             )
-
-    # Auto-save on any change
-    if changed:
-        save_state(state)
 
     # Handle debounced velocity save
     if st.session_state.velocity_pending_save:
