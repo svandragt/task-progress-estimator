@@ -281,7 +281,7 @@ def main():
                         "Criteria", width="medium", required=False
                     ),
                     "Points": st.column_config.NumberColumn(
-                        "Points", min_value=0.0, step=0.5, required=False
+                        "Points", min_value=0.0, step=0.25, required=False
                     ),
                     "Done": st.column_config.CheckboxColumn("Done"),
                 },
