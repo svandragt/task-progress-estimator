@@ -93,7 +93,7 @@ def df_to_criteria(df: pd.DataFrame) -> List[Dict[str, Any]]:
     rows = []
     for _, row in df.iterrows():
         text = str(row.get("Criteria", "")).strip()
-        points = float(row.get("Points", 0) or 0)
+        points = float(row.get("Points", 0.5) or 0.5)
         done = bool(row.get("Done", False))
         # REMOVE the strict "if text or points" check here
         # to allow rows to exist while being edited
@@ -281,7 +281,7 @@ def main():
                         "Criteria", width="medium", required=False
                     ),
                     "Points": st.column_config.NumberColumn(
-                        "Points", min_value=0.0, step=0.5, required=True
+                        "Points", min_value=0.0, step=0.5, required=False
                     ),
                     "Done": st.column_config.CheckboxColumn("Done"),
                 },
