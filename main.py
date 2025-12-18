@@ -61,6 +61,10 @@ def ensure_session_state():
         st.session_state._toast_after_rerun = None
     if "need_rerun" not in st.session_state:
         st.session_state.need_rerun = False
+    if "criteria_last_changed" not in st.session_state:
+        st.session_state.criteria_last_changed = {}
+    if "criteria_pending_save" not in st.session_state:
+        st.session_state.criteria_pending_save = set()
 
 
 def new_task(title: str) -> Dict[str, Any]:
@@ -291,11 +295,12 @@ def main():
             # But we must update the TASK state, not just compare it.
             new_criteria = df_to_criteria(edited)
 
-            # Only update and save if there's a real difference to prevent infinite loops
+            # Only update and mark for debounced save if there's a real difference
             if new_criteria != task.get("criteria", []):
                 task["criteria"] = new_criteria
-                save_state(state)
-                # We DON'T rerun here; let the editor finish its cycle
+                st.session_state.criteria_last_changed[tid] = time.time()
+                st.session_state.criteria_pending_save.add(tid)
+                # We DON'T save or rerun here; let the editor finish its cycle
 
             # Metrics
             total_sp, done_sp, incomplete_sp = compute_points(task["criteria"])
@@ -345,6 +350,26 @@ def main():
                 # Trigger rerun to check again
                 time.sleep(0.1)
                 st.rerun()
+
+    # Handle debounced criteria saves
+    if st.session_state.criteria_pending_save:
+        tasks_to_save = []
+        for tid in list(st.session_state.criteria_pending_save):
+            if tid in st.session_state.criteria_last_changed:
+                elapsed = time.time() - st.session_state.criteria_last_changed[tid]
+                if elapsed >= 1.0:  # 1 second debounce
+                    tasks_to_save.append(tid)
+
+        if tasks_to_save:
+            save_state(state)
+            for tid in tasks_to_save:
+                st.session_state.criteria_pending_save.discard(tid)
+                if tid in st.session_state.criteria_last_changed:
+                    del st.session_state.criteria_last_changed[tid]
+        elif st.session_state.criteria_pending_save:
+            # Still waiting for debounce period to complete
+            time.sleep(0.1)
+            st.rerun()
 
     if need_rerun or st.session_state.need_rerun:
         st.session_state.need_rerun = False
